@@ -1,0 +1,10 @@
+# Compiled files and dependencies
+/target/
+
+# IDE and editor files
+.vscode/
+.idea/
+
+# Database file (optional, but good practice to not commit the DB)
+*.db
+*.db-journal

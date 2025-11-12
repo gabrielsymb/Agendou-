@@ -1,0 +1,53 @@
+use serde::{Serialize, Deserialize};
+use chrono::NaiveDateTime;
+
+// =================================================================================
+// ESTRUTURAS DE DADOS (Modelos de Negócio)
+// =================================================================================
+
+/// Estrutura que representa um Cliente da Barbearia.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Cliente {
+    // Option<i32> é usado para IDs que podem ser None (antes de serem salvos)
+    pub id: Option<i32>,
+    pub nome: String,
+    pub telefone: String,
+    pub email: Option<String>,
+}
+
+/// Estrutura que representa um Agendamento (Corte/Serviço).
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Agendamento {
+    pub id: Option<i32>,
+    // Chave estrangeira
+    pub cliente_id: i32, 
+    pub servicos_ids: Vec<i32>,
+    pub data_hora: NaiveDateTime,
+    pub preco: f64, 
+    pub concluido: bool, 
+}
+
+// Implementar um método de criação (constructor)
+impl Cliente {
+    pub fn new(nome: String, telefone: String, email: Option<String>) -> Self {
+        Cliente {
+            id: None,
+            nome,
+            telefone,
+            email,
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct Servico {
+    pub id: Option<i32>,
+    pub nome: String,
+    pub preco: f64,
+}
+#[derive(Debug)]
+pub struct UsuarioSistema {
+    pub id: i32,
+    pub nome: String,
+    pub licenca_ativa: bool,
+    pub codigo_licenca: String,
+}
