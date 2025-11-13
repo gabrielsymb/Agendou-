@@ -1,0 +1,58 @@
+   0.654328800s  INFO prepare_target{force=false package_id=agendamento_barbearia v0.1.0 (C:\rust\barber_agenda) target="agendamento_barbearia"}: cargo::core::compiler::fingerprint: fingerprint error for agendamento_barbearia v0.1.0 (C:\rust\barber_agenda)/Check { test: false }/TargetInner { name: "agendamento_barbearia", doc: true, ..: with_path("C:\\rust\\barber_agenda\\src\\main.rs", Edition2021) }
+   0.657594500s  INFO prepare_target{force=false package_id=agendamento_barbearia v0.1.0 (C:\rust\barber_agenda) target="agendamento_barbearia"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\rust\barber_agenda\target\debug\.fingerprint\agendamento_barbearia-d5bf8b895c620b88\bin-agendamento_barbearia`
+
+Caused by:
+    O sistema não pode encontrar o arquivo especificado. (os error 2)
+
+Stack backtrace:
+   0: git_midx_writer_dump
+   1: git_midx_writer_dump
+   2: git_midx_writer_dump
+   3: git_midx_writer_dump
+   4: git_filter_source_repo
+   5: git_filter_source_path
+   6: git_filter_source_path
+   7: git_filter_source_path
+   8: git_filter_source_path
+   9: git_filter_source_repo
+  10: git_filter_source_repo
+  11: git_filter_source_repo
+  12: git_filter_source_repo
+  13: git_filter_source_repo
+  14: <unknown>
+  15: <unknown>
+  16: git_midx_writer_dump
+  17: git_filter_source_repo
+  18: git_midx_writer_dump
+  19: BaseThreadInitThunk
+  20: RtlUserThreadStart
+   0.884612200s  INFO prepare_target{force=false package_id=agendamento_barbearia v0.1.0 (C:\rust\barber_agenda) target="agendamento_barbearia"}: cargo::core::compiler::fingerprint: fingerprint error for agendamento_barbearia v0.1.0 (C:\rust\barber_agenda)/Check { test: true }/TargetInner { name: "agendamento_barbearia", doc: true, ..: with_path("C:\\rust\\barber_agenda\\src\\main.rs", Edition2021) }
+   0.884741100s  INFO prepare_target{force=false package_id=agendamento_barbearia v0.1.0 (C:\rust\barber_agenda) target="agendamento_barbearia"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\rust\barber_agenda\target\debug\.fingerprint\agendamento_barbearia-c1f24e26152142de\test-bin-agendamento_barbearia`
+
+Caused by:
+    O sistema não pode encontrar o arquivo especificado. (os error 2)
+
+Stack backtrace:
+   0: git_midx_writer_dump
+   1: git_midx_writer_dump
+   2: git_midx_writer_dump
+   3: git_midx_writer_dump
+   4: git_filter_source_repo
+   5: git_filter_source_path
+   6: git_filter_source_path
+   7: git_filter_source_path
+   8: git_filter_source_path
+   9: git_filter_source_repo
+  10: git_filter_source_repo
+  11: git_filter_source_repo
+  12: git_filter_source_repo
+  13: git_filter_source_repo
+  14: <unknown>
+  15: <unknown>
+  16: git_midx_writer_dump
+  17: git_filter_source_repo
+  18: git_midx_writer_dump
+  19: BaseThreadInitThunk
+  20: RtlUserThreadStart
+    Checking agendamento_barbearia v0.1.0 (C:\rust\barber_agenda)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.60s

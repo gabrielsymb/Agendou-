@@ -84,13 +84,26 @@ pub fn criar_tabela_servicos(conn: &Connection) -> Result<()> {
 // =================================================================================
 
 pub fn salvar_cliente(conn: &Connection, cliente: &mut Cliente) -> Result<i32> {
-    conn.execute(
-        "INSERT INTO clientes (nome, telefone, email) VALUES (?1, ?2, ?3)",
-        params![cliente.nome, cliente.telefone, cliente.email],
-    )?;
-    let id = conn.last_insert_rowid() as i32;
-    cliente.id = Some(id);
-    Ok(id)
+    match cliente.id {
+        Some(id) => {
+            // ID existe, então UPDATE
+            conn.execute(
+                "UPDATE clientes SET nome = ?1, telefone = ?2, email = ?3 WHERE id = ?4",
+                params![cliente.nome, cliente.telefone, cliente.email, id],
+            )?;
+            Ok(id)
+        }
+        None => {
+            // ID não existe, então INSERE
+            conn.execute(
+                "INSERT INTO clientes (nome, telefone, email) VALUES (?1, ?2, ?3)",
+                params![cliente.nome, cliente.telefone, cliente.email],
+            )?;
+            let id = conn.last_insert_rowid() as i32;
+            cliente.id = Some(id);
+            Ok(id)
+        }
+    }
 }
 
 pub fn listar_clientes(conn: &Connection) -> Result<Vec<Cliente>> {

@@ -370,12 +370,21 @@ pub fn excluir_cliente_terminal(conn: &rusqlite::Connection) -> rusqlite::Result
         }
     };
     match excluir_cliente(conn, id) {
-        Ok(_) => println!("✅ Cliente excluído com sucesso."),
-        Err(rusqlite::Error::ExecuteReturnedResults) => {
-            println!("❌ Não foi possível excluir o cliente. Existem agendamentos vinculados a ele.");
-        },
-        Err(e) => return Err(e),
-    }
+        Ok(_) => {
+            println!("✅ Cliente excluído com sucesso.");
+        }
+        Err(e) => {
+            // Verifica se o erro é o específico que criamos para "cliente com agendamentos"
+            if let Some(app_err) = e.sqlite_error() {
+                if app_err.extended_code == rusqlite::ffi::SQLITE_CONSTRAINT_FOREIGNKEY {
+                     println!("❌ Não foi possível excluir o cliente. Existem agendamentos vinculados a ele.");
+                     return Ok(()); // Retorna Ok para não parar o programa
+                }
+            }
+            // Para outros erros, imprime a mensagem genérica e propaga o erro.
+            println!("❌ Erro ao excluir cliente: {}", e);
+        }
+    }    
     Ok(())
 }
 
@@ -490,19 +499,30 @@ pub fn editar_cliente_terminal(conn: &rusqlite::Connection) -> rusqlite::Result<
         }
     };
 
+    // Busca o cliente para poder modificá-lo
+    let mut cliente = match buscar_cliente_por_id(conn, id)? {
+        Some(c) => c,
+        None => {
+            println!("❌ Cliente com ID {} não encontrado.", id);
+            return Ok(());
+        }
+    };
+
     print!("Novo nome: "); io::stdout().flush().unwrap();
     let mut nome = String::new(); io::stdin().read_line(&mut nome).unwrap();
 
     print!("Novo telefone: "); io::stdout().flush().unwrap();
     let mut telefone = String::new(); io::stdin().read_line(&mut telefone).unwrap();
 
-    print!("Novo email (opcional): "); io::stdout().flush().unwrap();
+    print!("Novo email: "); io::stdout().flush().unwrap();
     let mut email = String::new(); io::stdin().read_line(&mut email).unwrap();
 
-    conn.execute(
-        "UPDATE clientes SET nome = ?1, telefone = ?2, email = ?3 WHERE id = ?4",
-        params![nome.trim(), telefone.trim(), email.trim(), id],
-    )?;
+    // Atualiza os dados do struct do cliente
+    cliente.nome = nome.trim().to_string();
+    cliente.telefone = telefone.trim().to_string();
+    cliente.email = Some(email.trim().to_string());
+
+    salvar_cliente(conn, &mut cliente)?;
     println!("✅ Cliente atualizado com sucesso.");
     Ok(())
 }
@@ -580,8 +600,8 @@ pub fn listar_clientes_terminal(conn: &rusqlite::Connection) -> rusqlite::Result
                 c.id.unwrap_or(0),
                 c.nome,
                 c.telefone,
-                if let Some(email) = c.email {
-                    format!(" | {}", email)
+                if let Some(email) = &c.email {
+                    format!(" | {}", email.trim())
                 } else {
                     "".to_string()
                 }

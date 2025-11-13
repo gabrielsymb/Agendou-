@@ -1,0 +1,2 @@
+fn({type error}, State<Arc<std::sync::Mutex<Connection>>>) -> impl Future<Output = Json<std::option::Option<models::Cliente>>> {obter_cliente}
+fn({type error}, State<Arc<std::sync::Mutex<Connection>>>) -> impl Future<Output = Json<std::option::Option<models::Cliente>>> {obter_cliente}: Handler<_, _>

@@ -1,0 +1,2 @@
+fn({type error}, State<Arc<std::sync::Mutex<Connection>>>) -> impl Future<Output = ({type error}, Json<bool>)> {deletar_cliente_api}
+fn({type error}, State<Arc<std::sync::Mutex<Connection>>>) -> impl Future<Output = ({type error}, Json<bool>)> {deletar_cliente_api}: Handler<_, _>

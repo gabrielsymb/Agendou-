@@ -1,0 +1,14 @@
+C:\project-java\std-jv\rust\barber_agenda\target\debug\deps\serde-d73e1d5c9e5afe23.d: C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\project-java\std-jv\rust\barber_agenda\target\debug\build\serde-15a02bf4066364b5\out/private.rs
+
+C:\project-java\std-jv\rust\barber_agenda\target\debug\deps\libserde-d73e1d5c9e5afe23.rlib: C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\project-java\std-jv\rust\barber_agenda\target\debug\build\serde-15a02bf4066364b5\out/private.rs
+
+C:\project-java\std-jv\rust\barber_agenda\target\debug\deps\libserde-d73e1d5c9e5afe23.rmeta: C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\project-java\std-jv\rust\barber_agenda\target\debug\build\serde-15a02bf4066364b5\out/private.rs
+
+C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs:
+C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs:
+C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs:
+C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs:
+C:\Users\Gabriel\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs:
+C:\project-java\std-jv\rust\barber_agenda\target\debug\build\serde-15a02bf4066364b5\out/private.rs:
+
+# env-dep:OUT_DIR=C:\\project-java\\std-jv\\rust\\barber_agenda\\target\\debug\\build\\serde-15a02bf4066364b5\\out

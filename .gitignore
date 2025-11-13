@@ -1,0 +1,34 @@
+# Compilados e dependências
+# para compilar cargo build na pasta beckend e npm install 
+/target/
+node_modules/
+dist/
+build/
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.sublime-workspace
+*.sublime-project
+
+# Banco de dados e arquivos binários
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.bak
+
+# Arquivos temporários e de sistema
+*.log
+*.tmp
+*.DS_Store
+Thumbs.db
+
+# Configuração local
+.env
+.env.local
+.env.*.local
+
+# Ícones e assets pesados
+frontend/static/uicons/
