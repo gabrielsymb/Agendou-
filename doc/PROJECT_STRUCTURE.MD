@@ -1,6 +1,10 @@
 # 🌳 Estrutura do Projeto
 
-Esta é a árvore de diretórios do código-fonte do projeto `barber_agenda`.
+Esta é a árvore de diretórios do projeto `barber_agenda`.
+
+> **Nota sobre a Monetização:** O escopo do projeto foi alterado. A ideia inicial de um sistema de licença paga (`licenca.rs`) foi abandonada em favor de um modelo baseado em doações (donations). A arquitetura primariamente offline torna um sistema de assinatura facilmente contornável, sendo o modelo de apoio voluntário mais sustentável e honesto para com os usuários.
+
+> **Nota sobre a Arquitetura:** A abordagem de frontend foi alterada. O desenvolvimento com Flutter (`agendou_web`) foi descontinuado. O projeto agora utilizará **Svelte** para o frontend, mantendo o backend em **Rust** intacto. A aplicação completa (backend + frontend) será hospedada na plataforma **Fly.io**.
 
 ```
 /

@@ -7,4 +7,4 @@
 
 # Database file (optional, but good practice to not commit the DB)
 *.db
-*.db-journal
+*.db-journalgit config --global user.email "gabrielsebasty@gmail.com"
