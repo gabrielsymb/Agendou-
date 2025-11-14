@@ -22,15 +22,16 @@ Esta é a árvore de diretórios do projeto `Agendou!` (backend Rust + frontend 
 │ ├── Cargo.lock
 │ └── src/
 │ ├── db/
-│ │ ├── mod.rs # Acesso SQLite: conexão, criação de tabelas, CRUD
-│ │ └── Banco.db # Arquivo de banco (em src/bd/Banco.db em runtime)
+│ │ ├── mod.rs # Acesso SQLite: conexão, criação de tabelas, CRUD, migrações leves (ex.: adiciona `duracao_min` em `servicos` se ausente)
+│ │ └── Banco.db # Arquivo de banco (padrão em src/bd/Banco.db em runtime; pode ser sobrescrito por APP_DB_PATH)
 │ ├── models/
 │ │ └── mod.rs # Structs: Cliente, Agendamento, Servico, UsuarioSistema
 │ ├── calc_preco.rs # Relatórios e cálculos de lucro
-│ ├── licenca.rs # Lógica de licença/validação
-│ ├── menu.rs # Menu CLI
-│ ├── servicos.rs # Handlers/funcionalidades de serviços
-│ └── main.rs # Ponto de entrada; inicializa servidor/CLI e rotas
+│ ├── licenca.rs # Lógica de licença/validação (campo de validade mantido, monetização migrada para doações)
+│ ├── menu.rs # Menu CLI (opera sobre as mesmas funções de persistência do backend)
+│ ├── servicos.rs # Handlers/funcionalidades de serviços (listar/criar/atualizar/excluir)
+│ ├── agendamentos.rs # Handlers HTTP para agendamentos + adaptador para payloads flexíveis (timestamps string/numérico)
+│ └── main.rs # Ponto de entrada; inicializa servidor/CLI e registra rotas (clientes, serviços, agendamentos)
 ├── frontend/
 │ ├── package.json
 │ ├── svelte.config.js
@@ -52,13 +53,14 @@ Esta é a árvore de diretórios do projeto `Agendou!` (backend Rust + frontend 
 │ └── +page.ts
 │ └── agendamentos/
 │ ├── +page.svelte # Listagem e UI de agendamentos
-│ └── +page.ts # Carrega agendamentos via /api/agendamentos
+│ └── +page.ts # Carrega agendamentos via /api/agendamentos (proxy)
 │ └── api/
 │ └── agendamentos/
-│ ├── +server.ts # Proxy GET/POST -> /agendamentos
+│ ├── +server.ts # Proxy GET/POST -> /agendamentos (encaminha para BACKEND via PRIVATE_API_BASE)
 │ └── [id]/+server.ts # Proxy GET/PUT/DELETE -> /agendamentos/:id
-│ ├── README.md # Instruções de desenvolvimento e .env
-│ ├── .env.example # Exemplo de variáveis de ambiente (PUBLIC_API_BASE, PRIVATE_API_BASE)
+│ └── clientes/ # proxies para clientes também implementados em server-side
+│ ├── README.md # Instruções de desenvolvimento e .env (explica PRIVATE_API_BASE para proxy)
+│ ├── .env.example # Exemplo de variáveis de ambiente (PRIVATE_API_BASE usado no server-side proxy)
 │ └── .env # Arquivo de desenvolvimento local (NÃO versionado)
 │ └── src/
 │ └── routes/

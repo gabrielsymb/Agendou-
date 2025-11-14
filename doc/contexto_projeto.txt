@@ -7,14 +7,14 @@ O projeto "Agendou!" é um sistema de agendamento para barbearias com backend es
 - beckend/
   - Cargo.toml, Cargo.lock
   - src/
-    - main.rs                # Ponto de entrada; define rotas, CORS, inicia servidor ou CLI
+  - main.rs                # Ponto de entrada; define rotas (clientes, servicos, agendamentos), CORS, inicia servidor ou CLI
     - calc_preco.rs          # Cálculos e relatórios de lucro
     - licenca.rs             # Lógica de licença (atualmente mantendo campo de validade)
     - menu.rs                # Implementa menu CLI
     - servicos.rs            # Handlers e funções de serviço (lista, cria, atualiza, exclui)
     - db/
-      - mod.rs               # Funções de acesso ao SQLite (conexão, criar tabelas, CRUD)
-      - Banco.db             # Arquivo de banco (em src/bd/Banco.db em runtime)
+      - mod.rs               # Funções de acesso ao SQLite (conexão, criar tabelas, CRUD, migrações leves). Usa `src/bd/Banco.db` por padrão; path pode ser sobrescrito pela variável de ambiente `APP_DB_PATH`.
+      - Banco.db             # Arquivo de banco (em src/bd/Banco.db em runtime por padrão)
     - models/
       - mod.rs               # Definição de structs: Cliente, Agendamento, Servico, UsuarioSistema
 - frontend/
@@ -116,7 +116,7 @@ Observados em `main.rs` e `servicos.rs`:
   - GET  /servicos/:id        -> servicos::obter_servico
   - PUT  /servicos/:id        -> servicos::atualizar_servico
   - DELETE /servicos/:id      -> servicos::excluir_servico
-- Observação: Rotas relacionadas a agendamentos não aparecem registradas diretamente em `main.rs` — as funções de CRUD e listagem para agendamentos existem em `db/mod.rs`, mas não há registros de handlers HTTP/axum para agendamentos no `main.rs` atual. Possível área para implementação futura.
+ - Observação: Handlers de agendamentos foram implementados em `beckend/src/agendamentos.rs` e estão registrados em `main.rs`. O módulo inclui um handler que aceita formatos flexíveis para `data_hora` (número ou string RFC3339) para facilitar integração com o frontend.
 
 7. SPAs implementadas no frontend (páginas e localização)
 - Dashboard: `frontend/src/routes/+page.svelte` (tela inicial)
@@ -130,11 +130,14 @@ Observados em `main.rs` e `servicos.rs`:
   - `fetch('http://localhost:3000/clientes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cliente) })` para criar.
   - No SPA de serviços, há chamadas para `/api/servicos` ou `/api/servicos/:id` — dependendo da configuração do adaptador/proxy do SvelteKit, estas podem ser rotas relativas que o dev server encaminha para o backend.
 - Headers: Content-Type: application/json é usado nas requisições POST/PUT; não há evidência de autenticação via headers/tokens nas chamadas observadas.
+ - Headers: Content-Type: application/json é usado nas requisições POST/PUT; não há evidência de autenticação via headers/tokens nas chamadas observadas.
+ - Proxy server-side: o frontend implementa rotas server-side em `frontend/src/routes/api/*/+server.ts` que encaminham chamadas para o backend. Essas proxies usam a variável de ambiente `PRIVATE_API_BASE` (ex.: `http://localhost:3000`) definida no ambiente do servidor/desenvolvimento e são usadas apenas no lado servidor. Isso evita expor o endereço do backend no bundle cliente.
 
 9. Configurações especiais
-- CORS: `CorsLayer` em `main.rs` com `allow_origin(Any)` e `allow_methods` incluindo GET/POST/PUT/DELETE/OPTIONS; `allow_headers(Any)` — backend permite acesso de qualquer origem.
-- Estado compartilhado: a conexão SQLite é colocada em `Arc<Mutex<Connection>>` e passada ao router via `with_state(db)` para handlers extraírem com `State(conn): State<Db>`.
-- Migração simples: `criar_tabela_servicos` verifica e adiciona coluna `duracao_min` se necessário.
+ - DB path: padrão `src/bd/Banco.db`; pode ser sobrescrito via `APP_DB_PATH` (variável de ambiente) para cenários de deploy/CI.
+ - CORS: `CorsLayer` em `main.rs` com `allow_origin(Any)` e `allow_methods` incluindo GET/POST/PUT/DELETE/OPTIONS; `allow_headers(Any)` — backend permite acesso de qualquer origem.
+ - Estado compartilhado: a conexão SQLite é colocada em `Arc<Mutex<Connection>>` e passada ao router via `with_state(db)` para handlers extraírem com `State(conn): State<Db>`.
+ - Migração simples: `criar_tabela_servicos` verifica e adiciona coluna `duracao_min` se necessário. Observação: outras migrações (ex.: adicionar coluna de `buffer_minutos`) não foram encontradas no código e devem ser adicionadas por migração planejada quando necessário.
 
 10. Autenticação, regras de negócio e comportamentos importantes
 - Autenticação: não há evidências de autenticação por token/sessão. `UsuarioSistema` existe em `models/mod.rs`, e `licenca.rs` trata validade/licença, mas o backend não está protegendo rotas via autenticação.
@@ -161,6 +164,6 @@ Fim do resumo.
 - Arquivo `frontend/.env.example` criado para documentar as variáveis de ambiente esperadas: `PUBLIC_API_BASE` (se necessário no cliente) e `PRIVATE_API_BASE` (usada apenas no lado servidor do SvelteKit).
 - Alterações na UI: chamadas que continham `http://localhost:3000` foram substituídas por rotas relativas `/api/...` que apontam ao proxy interno do frontend.
 - Controle de versão: `.gitignore` foi atualizado para ignorar `frontend/.env` e `beckend/.env`, garantindo que arquivos de configuração locais não sejam versionados.
-- Nota sobre backend: as funções de persistência e validação para agendamentos já existem em `beckend/src/db/mod.rs`, porém o `beckend/src/main.rs` ainda não registra handlers HTTP públicos para rotas de agendamentos; expor essas rotas é um próximo passo.
+ - Nota sobre backend: as funções de persistência e validação para agendamentos existem em `beckend/src/db/mod.rs` e os handlers HTTP foram implementados em `beckend/src/agendamentos.rs` e registrados em `main.rs`. O handler de criação `criar_agendamento_api_incoming` aceita `data_hora` como timestamp numérico ou string (RFC3339) para maior compatibilidade com clientes.
 
 Como consequência prática: após essas mudanças, ao implantar em produção deve-se setar `PRIVATE_API_BASE` no ambiente do servidor SvelteKit (ou na plataforma de hospedagem) apontando para o backend (por exemplo, `https://api.seudominio.com`). O cliente não verá esse endereço no bundle.
