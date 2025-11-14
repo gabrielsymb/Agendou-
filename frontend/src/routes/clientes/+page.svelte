@@ -3,7 +3,7 @@
 	import Modal from '$lib/components/Modal.svelte';
 	import ConfirmarExclusao from '$lib/components/ConfirmarExclusao.svelte';
 	import { invalidateAll } from '$app/navigation';
-	import { showToast } from '$lib/toast';
+	import { toast } from '$lib/toast';
 
 	export let data;
 
@@ -26,7 +26,7 @@
 
 	async function salvarCliente(event: CustomEvent<Cliente>) {
 		const cliente = event.detail;
-		const url = cliente.id ? `http://localhost:3000/clientes/${cliente.id}` : 'http://localhost:3000/clientes';
+		const url = cliente.id ? `/api/clientes/${cliente.id}` : '/api/clientes';
 		const method = cliente.id ? 'PUT' : 'POST';
 
 		try {
@@ -42,9 +42,9 @@
 
 			modalAberto = false;
 			await invalidateAll(); // Atualiza os dados da página
-			showToast(cliente.id ? 'Edição concluída com sucesso!' : 'Cliente salvo com sucesso!', 'success');
+			toast.success(cliente.id ? 'Edição concluída com sucesso!' : 'Cliente salvo com sucesso!');
 		} catch (error) {
-			showToast('Erro ao salvar cliente.', 'error');
+			toast.error('Erro ao salvar cliente.');
 		}
 	}
 
@@ -57,7 +57,7 @@
 		if (!clienteParaExcluir?.id) return;
 
 		try {
-			const response = await fetch(`http://localhost:3000/clientes/${clienteParaExcluir.id}`, {
+			const response = await fetch(`/api/clientes/${clienteParaExcluir.id}`, {
 				method: 'DELETE'
 			});
 
@@ -68,9 +68,9 @@
 			modalExcluirAberto = false;
 			clienteParaExcluir = null;
 			await invalidateAll(); // Atualiza os dados
-			showToast('Cliente excluído com sucesso!', 'success');
+			toast.success('Cliente excluído com sucesso!');
 		} catch (error) {
-			showToast('Erro ao excluir cliente.', 'error');
+			toast.error('Erro ao excluir cliente.');
 		}
 	}
 </script>

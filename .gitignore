@@ -1,6 +1,6 @@
 # Compilados e dependências
 # para compilar cargo build na pasta beckend e npm install 
-/target/
+target/
 node_modules/
 dist/
 build/
@@ -29,6 +29,10 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Ignore front/backend envs explicitly
+frontend/.env
+beckend/.env
 
 # Ícones e assets pesados
 frontend/static/uicons/

@@ -1,0 +1,60 @@
+# 🌳 Estrutura do Projeto
+
+Esta é a árvore de diretórios do projeto `barber_agenda`.
+
+> **Nota sobre a Monetização:** O escopo do projeto foi alterado. A ideia inicial de um sistema de licença paga (`licenca.rs`) foi abandonada em favor de um modelo baseado em doações (donations). A arquitetura primariamente offline torna um sistema de assinatura facilmente contornável, sendo o modelo de apoio voluntário mais sustentável e honesto para com os usuários.
+
+> **Nota sobre a Arquitetura:** A abordagem de frontend foi alterada. O desenvolvimento com Flutter (`agendou_web`) foi descontinuado. O projeto agora utilizará **Svelte** para o frontend, mantendo o backend em **Rust** intacto. A aplicação completa (backend + frontend) será hospedada na plataforma **Fly.io**.
+
+```markdown
+# 🌳 Estrutura do Projeto (atualizada)
+
+Esta é a árvore de diretórios do projeto `Agendou!` (backend Rust + frontend Svelte).
+
+> **Nota sobre a Monetização:** O sistema de licença (`licenca.rs`) foi originalmente planejado, mas o projeto migrou para um modelo baseado em doações; o código ainda mantém campos e tabelas relacionados à validade de licença.
+
+> **Nota sobre a Arquitetura:** Frontend em Svelte (SvelteKit) e backend em Rust (Axum). A aplicação pode rodar em modo CLI ou como servidor HTTP.
+```
+
+/
+├── beckend/
+│ ├── Cargo.toml
+│ ├── Cargo.lock
+│ └── src/
+│ ├── db/
+│ │ ├── mod.rs # Acesso SQLite: conexão, criação de tabelas, CRUD
+│ │ └── Banco.db # Arquivo de banco (em src/bd/Banco.db em runtime)
+│ ├── models/
+│ │ └── mod.rs # Structs: Cliente, Agendamento, Servico, UsuarioSistema
+│ ├── calc_preco.rs # Relatórios e cálculos de lucro
+│ ├── licenca.rs # Lógica de licença/validação
+│ ├── menu.rs # Menu CLI
+│ ├── servicos.rs # Handlers/funcionalidades de serviços
+│ └── main.rs # Ponto de entrada; inicializa servidor/CLI e rotas
+├── frontend/
+│ ├── package.json
+│ ├── svelte.config.js
+│ ├── tsconfig.json
+│ └── src/
+│ ├── app.css
+│ ├── app.html
+│ ├── lib/
+│ │ ├── components/ # Componentes Svelte reutilizáveis (cards, modais, toasts)
+│ │ └── toast.ts
+│ └── routes/
+│ ├── +layout.svelte # Layout principal com navegação
+│ ├── +page.svelte # Dashboard
+│ ├── clientes/
+│ │ ├── +page.svelte
+│ │ └── +page.server.ts
+│ └── servicos/
+│ ├── +page.svelte
+│ └── +page.ts
+├── doc/
+│ ├── PROJECT_STRUCTURE.MD # (este arquivo)
+│ └── contexto_projeto.txt # Resumo técnico do projeto (gerado)
+└── .gitignore
+
+```
+
+```

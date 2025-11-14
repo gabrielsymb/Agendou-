@@ -1,3 +1,32 @@
+## Frontend - desenvolvimento local
+
+Este diretório contém a aplicação SvelteKit que consome a API do backend.
+
+Passos rápidos para rodar localmente:
+
+1. Copie o arquivo de exemplo de variáveis de ambiente:
+
+   - Windows (PowerShell):
+     - copie `frontend/.env.example` para `frontend/.env`
+
+2. Ajuste `PRIVATE_API_BASE` caso seu backend rode em outra porta/endereço (ex.: `http://localhost:3000`).
+
+3. No terminal, instale dependências e rode o dev server:
+
+   - Instalar: `npm install`
+   - Rodar: `npm run dev -- --host`
+
+4. Execute o backend separadamente (cargo run no diretório `beckend`) apontando para o mesmo `PRIVATE_API_BASE`.
+
+Notas de segurança e deploy
+
+- Não comite arquivos `.env`; `frontend/.env` está listado no `.gitignore`.
+- Em produção, configure `PRIVATE_API_BASE` no ambiente do servidor (por exemplo, Vercel, Netlify, Fly, etc.).
+- Se preferir expor o backend diretamente ao cliente (não recomendado para segredos), use `PUBLIC_API_BASE` no `.env` e referências em código cliente — lembrando que tudo em `PUBLIC_` é incorporado no bundle e visível.
+
+Problemas comuns
+
+- Se as chamadas falharem com 502/504, verifique se o backend está rodando e acessível a partir do servidor onde o SvelteKit está sendo executado.
 # sv
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).

@@ -16,7 +16,7 @@ pub struct Cliente {
 }
 
 /// Estrutura que representa um Agendamento (Corte/Serviço).
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Agendamento {
     pub id: Option<i32>,
     // Chave estrangeira
@@ -48,6 +48,7 @@ pub struct Servico {
     pub preco: f64,
     pub duracao_min: i32,
 }
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct UsuarioSistema {
     pub id: i32,

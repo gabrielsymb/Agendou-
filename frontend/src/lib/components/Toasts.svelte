@@ -3,8 +3,11 @@
 	import { fly } from 'svelte/transition';
 	import type { Toast } from '$lib/toast';
 
-	function getBackgroundColor(type: 'success' | 'error') {
-		return type === 'success' ? 'bg-green-500' : 'bg-red-500';
+	// accept 'info' as well and map to a neutral color
+	function getBackgroundColor(type: Toast['type']) {
+		if (type === 'success') return 'bg-green-500';
+		if (type === 'error') return 'bg-red-500';
+		return 'bg-blue-500';
 	}
 </script>
 

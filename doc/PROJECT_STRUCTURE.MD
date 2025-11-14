@@ -6,22 +6,71 @@ Esta é a árvore de diretórios do projeto `barber_agenda`.
 
 > **Nota sobre a Arquitetura:** A abordagem de frontend foi alterada. O desenvolvimento com Flutter (`agendou_web`) foi descontinuado. O projeto agora utilizará **Svelte** para o frontend, mantendo o backend em **Rust** intacto. A aplicação completa (backend + frontend) será hospedada na plataforma **Fly.io**.
 
+```markdown
+# 🌳 Estrutura do Projeto (atualizada)
+
+Esta é a árvore de diretórios do projeto `Agendou!` (backend Rust + frontend Svelte).
+
+> **Nota sobre a Monetização:** O sistema de licença (`licenca.rs`) foi originalmente planejado, mas o projeto migrou para um modelo baseado em doações; o código ainda mantém campos e tabelas relacionados à validade de licença.
+
+> **Nota sobre a Arquitetura:** Frontend em Svelte (SvelteKit) e backend em Rust (Axum). A aplicação pode rodar em modo CLI ou como servidor HTTP.
 ```
+
 /
-├── src/
-│   ├── db/
-│   │   ├── mod.rs      # Módulo de interação com o banco de dados (SQLite).
-│   │   └── ss          # Arquivo ou diretório adicional (sem extensão, verificar conteúdo).
-│   ├── doc/
-│   │   └── READ.MD     # Documentação principal do projeto.
-│   ├── models/
-│   │   └── mod.rs      # Definição das estruturas de dados (structs) do sistema.
-│   ├── calc_preco.rs   # Módulo para cálculo de preços e relatórios de lucro.
-│   ├── licenca.rs      # Módulo para gerenciamento e validação de licenças.
-│   ├── main.rs         # Ponto de entrada da aplicação.
-│   └── menu.rs         # Módulo que controla o menu interativo do terminal (CLI).
-├── .gitignore          # Arquivos e diretórios ignorados pelo Git.
-├── Cargo.lock          # Arquivo de lock com as versões exatas das dependências.
-└── Cargo.toml          # Arquivo de manifesto do projeto Rust (metadados e dependências).
+├── beckend/
+│ ├── Cargo.toml
+│ ├── Cargo.lock
+│ └── src/
+│ ├── db/
+│ │ ├── mod.rs # Acesso SQLite: conexão, criação de tabelas, CRUD
+│ │ └── Banco.db # Arquivo de banco (em src/bd/Banco.db em runtime)
+│ ├── models/
+│ │ └── mod.rs # Structs: Cliente, Agendamento, Servico, UsuarioSistema
+│ ├── calc_preco.rs # Relatórios e cálculos de lucro
+│ ├── licenca.rs # Lógica de licença/validação
+│ ├── menu.rs # Menu CLI
+│ ├── servicos.rs # Handlers/funcionalidades de serviços
+│ └── main.rs # Ponto de entrada; inicializa servidor/CLI e rotas
+├── frontend/
+│ ├── package.json
+│ ├── svelte.config.js
+│ ├── tsconfig.json
+│ └── src/
+│ ├── app.css
+│ ├── app.html
+│ ├── lib/
+│ │ ├── components/ # Componentes Svelte reutilizáveis (cards, modais, toasts)
+│ │ └── toast.ts
+│ └── routes/
+│ ├── +layout.svelte # Layout principal com navegação
+│ ├── +page.svelte # Dashboard
+│ ├── clientes/
+│ │ ├── +page.svelte
+│ │ └── +page.server.ts
+│ └── servicos/
+│ ├── +page.svelte
+│ └── +page.ts
+│ └── agendamentos/
+│ ├── +page.svelte # Listagem e UI de agendamentos
+│ └── +page.ts # Carrega agendamentos via /api/agendamentos
+│ └── api/
+│ └── agendamentos/
+│ ├── +server.ts # Proxy GET/POST -> /agendamentos
+│ └── [id]/+server.ts # Proxy GET/PUT/DELETE -> /agendamentos/:id
+│ ├── README.md # Instruções de desenvolvimento e .env
+│ ├── .env.example # Exemplo de variáveis de ambiente (PUBLIC_API_BASE, PRIVATE_API_BASE)
+│ └── .env # Arquivo de desenvolvimento local (NÃO versionado)
+│ └── src/
+│ └── routes/
+│ └── api/ # Endpoints server-side (proxy) implementados para encaminhar ao backend
+│ └── clientes/
+│ ├── +server.ts # GET, POST proxy para /clientes
+│ └── [id]/+server.ts # GET, PUT, DELETE proxy para /clientes/:id
+├── doc/
+│ ├── PROJECT_STRUCTURE.MD # (este arquivo)
+│ └── contexto_projeto.txt # Resumo técnico do projeto (gerado)
+└── .gitignore
+
+```
 
 ```

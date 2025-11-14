@@ -1,9 +1,10 @@
 // --- Módulos & Bibliotecas ---
-use rusqlite::{Connection, Result, params};
+use rusqlite::{Connection, Result, params, OpenFlags};
 use chrono::{NaiveDateTime, Datelike, DateTime, Utc};
 use std::collections::HashMap;
 use crate::models::{Cliente, Agendamento, Servico};
 use rusqlite::ToSql;
+use std::{fs, path::Path, time::Duration};
 
 
 // Caminho do banco de dados (padrão) — pode ser sobrescrito pela variável de ambiente APP_DB_PATH
@@ -24,7 +25,22 @@ pub fn conectar_db() -> Result<Connection> {
         Err(_) => std::path::PathBuf::from(&db_path),
     };
     println!("[DB] Abrindo arquivo de banco de dados em: {}", abs_path.display());
-    Connection::open(db_path)
+    // Garantir que o diretório pai exista (cria se necessário)
+    let path = Path::new(&db_path);
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            if let Err(e) = fs::create_dir_all(parent) {
+                eprintln!("[DB] Falha ao criar diretório {}: {}", parent.display(), e);
+                // Tentaremos abrir mesmo assim; Connection::open_with_flags retornará erro apropriado se necessário
+            }
+        }
+    }
+
+    // Abrir em read-write e criar se não existir
+    let conn = Connection::open_with_flags(&db_path, OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE)?;
+    // Ajustar timeout para evitar falhas se outro processo estiver acessando momentaneamente
+    conn.busy_timeout(Duration::from_secs(5))?;
+    Ok(conn)
 }
 
 pub fn criar_tabelas(conn: &Connection) -> Result<()> {
@@ -324,6 +340,7 @@ pub fn excluir_agendamento(conn: &Connection, id: i32) -> Result<()> {
 // 4. RELATÓRIO DE LUCRO
 // =================================================================================
 
+#[allow(dead_code)]
 pub fn gerar_relatorio_lucro(conn: &Connection) -> Result<f64> {
     let mut stmt = conn.prepare(
         "SELECT data_hora, preco FROM agendamentos WHERE concluido = 1"
@@ -393,6 +410,7 @@ pub fn excluir_cliente(conn: &Connection, id: i32) -> Result<()> {
     Ok(())
 }
 /// Lista todos os agendamentos para uma data específica.
+#[allow(dead_code)]
 pub fn listar_agendamentos_por_data(conn: &Connection, data: NaiveDateTime) -> Result<Vec<Agendamento>> {
     let inicio = data.date().and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp();
     let fim = data.date().and_hms_opt(23, 59, 59).unwrap().and_utc().timestamp();
@@ -431,6 +449,7 @@ pub fn listar_agendamentos_por_data(conn: &Connection, data: NaiveDateTime) -> R
     Ok(agendamentos_com_servicos)
 }
 /// Lista todos os agendamentos de um cliente específico.
+#[allow(dead_code)]
 pub fn listar_agendamentos_por_cliente(conn: &Connection, cliente_id: i32) -> Result<Vec<Agendamento>> {
     let mut stmt = conn.prepare(
         "SELECT id, cliente_id, data_hora, preco, concluido 

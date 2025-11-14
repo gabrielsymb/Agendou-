@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use chrono::{NaiveDateTime, Utc, Datelike};
 use rusqlite::{Connection, Result, params};
 use sha2::{Sha256, Digest};

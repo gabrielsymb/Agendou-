@@ -16,6 +16,7 @@ mod menu;
 mod licenca;
 mod calc_preco;
 mod servicos;
+mod agendamentos;
  
 use db::{buscar_cliente_por_id, excluir_cliente, salvar_cliente};
 use models::Cliente;
@@ -160,6 +161,8 @@ async fn iniciar_servidor() -> Result<(), Box<dyn std::error::Error>> {
         .route("/clientes/:id", get(obter_cliente).put(atualizar_cliente_api).delete(deletar_cliente_api))
     .route("/servicos", get(servicos::listar_servicos).post(servicos::criar_servico))
     .route("/servicos/:id", get(servicos::obter_servico).put(servicos::atualizar_servico).delete(servicos::excluir_servico))
+    .route("/agendamentos", get(agendamentos::listar_agendamentos_api).post(agendamentos::criar_agendamento_api_incoming))
+    .route("/agendamentos/:id", get(agendamentos::obter_agendamento_api).put(agendamentos::atualizar_agendamento_api).delete(agendamentos::excluir_agendamento_api))
         .layer(cors)
         .with_state(db);
  

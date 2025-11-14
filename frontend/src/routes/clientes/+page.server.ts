@@ -3,7 +3,8 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ fetch, depends }) => {
 	depends('app:clientes'); // Informa ao SvelteKit sobre a dependência externa
 	try {
-		const response = await fetch('http://localhost:3000/clientes');
+		// Usar endpoint relativo que será tratado pelo proxy server-side (/api/clientes)
+		const response = await fetch('/api/clientes');
 		if (!response.ok) {
 			throw new Error(`HTTP error! status: ${response.status}`);
 		}
