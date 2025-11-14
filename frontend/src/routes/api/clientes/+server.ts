@@ -3,8 +3,10 @@ import { env } from '$env/dynamic/private';
 
 const BACKEND = env.PRIVATE_API_BASE ?? 'http://localhost:3000';
 
-export const GET: RequestHandler = async () => {
-	const res = await fetch(`${BACKEND}/clientes`);
+export const GET: RequestHandler = async ({ url }) => {
+	// Forward query string (search, limit) to backend
+	const query = url.search ? `?${url.searchParams.toString()}` : '';
+	const res = await fetch(`${BACKEND}/clientes${query}`);
 	const data = await res.text();
 	return new Response(data, {
 		status: res.status,

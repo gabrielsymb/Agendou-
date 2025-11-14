@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, Query},
     http::StatusCode,
     Json,
 };
@@ -18,8 +18,33 @@ pub struct ApiResponse<T> {
     data: Option<T>,
 }
 
+#[allow(dead_code)]
 pub async fn listar_servicos(State(conn): State<Db>) -> Json<Vec<Servico>> {
     let conn = conn.lock().unwrap();
+    let servicos = db::listar_servicos(&conn).unwrap_or_else(|e| {
+        eprintln!("Erro ao listar serviços: {}", e);
+        vec![]
+    });
+    Json(servicos)
+}
+
+
+#[derive(serde::Deserialize)]
+pub struct ServicosQuery {
+    search: Option<String>,
+    limit: Option<i32>,
+}
+
+pub async fn listar_servicos_query(Query(q): Query<ServicosQuery>, State(conn): State<Db>) -> Json<Vec<Servico>> {
+    let conn = conn.lock().unwrap();
+    if let Some(search) = q.search {
+        let limit = q.limit.unwrap_or(15);
+        let servicos = db::listar_servicos_search(&conn, &search, limit).unwrap_or_else(|e| {
+            eprintln!("Erro ao buscar serviços: {}", e);
+            vec![]
+        });
+        return Json(servicos);
+    }
     let servicos = db::listar_servicos(&conn).unwrap_or_else(|e| {
         eprintln!("Erro ao listar serviços: {}", e);
         vec![]

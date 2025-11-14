@@ -16,6 +16,10 @@ Esta é a árvore de diretórios do projeto `Agendou!` (backend Rust + frontend 
 > **Nota sobre a Arquitetura:** Frontend em Svelte (SvelteKit) e backend em Rust (Axum). A aplicação pode rodar em modo CLI ou como servidor HTTP.
 ```
 
+## Changelog de documentação
+
+- 2025-11-14: Atualizada documentação para refletir frontend SvelteKit, proxies de API no frontend, e regra de exibição de nomes (primeiro nome completo + iniciais abreviadas para demais palavras).
+
 /
 ├── beckend/
 │ ├── Cargo.toml

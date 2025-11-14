@@ -1,3 +1,32 @@
+Lógica de agendamento (resumo atualizado)
+
+Esta especificação descreve a lógica de disponibilidade e as regras de negócio que o backend implementa atualmente.
+
+Princípios centrais
+
+Cada serviço possui `duracao_min` (campo em `servicos`) que representa a duração padrão do serviço.
+Ao criar um agendamento, a duração total é a soma das `duracao_min` dos serviços selecionados.
+O backend aplica um `buffer_min` (minutos) após cada agendamento ao calcular disponibilidade, evitando sobreposição próxima.
+A granularidade (`granularity_min`) define os incrementos (ex.: 15 minutos) dos slots disponíveis.
+Algoritmo de disponibilidade (implementado em beckend/src/db/mod.rs -> calcular_disponibilidade)
+
+Recebe `date` (YYYY-MM-DD), `duracao_min`, `buffer_min` e `granularity_min`.
+Lê `work_windows` configuradas no banco para o dia da semana. Se não existir, usa fallback 08:00–18:00.
+Consulta agendamentos existentes no dia e converte cada um em um intervalo ocupado (incluindo buffer após o fim).
+Para cada janela de trabalho, percorre do início ao fim em passos de `granularity_min` e adiciona um slot quando o intervalo [start, start + duracao_min + buffer] não conflitar com ocupados.
+Retorna lista de slots ISO strings (ex.: 2025-11-14T09:00:00).
+Regras e validações importantes
+
+Não permitir agendamento que ultrapasse o horário de fechamento.
+O buffer é aplicado como tempo extra após o fim do agendamento ao comparar com outras reservas.
+A granularidade assegura que os slots sugeridos sigam incrementos constantes (ex.: 15 minutos).
+Conflito dinâmico: a verificação final antes de salvar deve revalidar disponibilidade (o handler de criação converte payloads flexíveis e chama `salvar_agendamento`).
+Notas operacionais
+
+A lógica foi implementada para ser determinística e simples de inspecionar; as funções em `db/mod.rs` contêm testes unitários para algumas regras (ver módulo `tests`).
+Recomenda-se executar testes manuais de ponta a ponta para validar parâmetros (`duracao_min`, `buffer_min`, `granularity_min`) em dispositivos móveis e desktop.
+Fim do resumo técnico.
+
 lógica robusta de agendamento, sem código, para que fique claro como o sistema deve funcionar de ponta a ponta.
 
 🧱 Estrutura conceitual

@@ -1,6 +1,6 @@
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, Query},
     http::{Method, StatusCode},
     routing::get,
     Json, Router,};
@@ -31,8 +31,23 @@ struct ApiResponse<T> {
     data: Option<T>,
 }
  
-async fn listar_clientes_api(State(conn): State<Db>) -> Json<Vec<Cliente>> {
+#[derive(serde::Deserialize)]
+struct ClientesQuery {
+    search: Option<String>,
+    limit: Option<i32>,
+}
+
+async fn listar_clientes_api(Query(q): Query<ClientesQuery>, State(conn): State<Db>) -> Json<Vec<Cliente>> {
     let conn = conn.lock().unwrap();
+    if let Some(search) = q.search {
+        let limit = q.limit.unwrap_or(15);
+        let clientes = db::listar_clientes_search(&conn, &search, limit).unwrap_or_else(|e| {
+            eprintln!("Erro ao buscar clientes: {}", e);
+            vec![]
+        });
+        return Json(clientes);
+    }
+
     let clientes = db::listar_clientes(&conn).unwrap_or_else(|e| {
         eprintln!("Erro ao listar clientes: {}", e);
         vec![]
@@ -159,9 +174,11 @@ async fn iniciar_servidor() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/clientes", get(listar_clientes_api).post(criar_cliente))
         .route("/clientes/:id", get(obter_cliente).put(atualizar_cliente_api).delete(deletar_cliente_api))
-    .route("/servicos", get(servicos::listar_servicos).post(servicos::criar_servico))
+    .route("/servicos", get(servicos::listar_servicos_query).post(servicos::criar_servico))
     .route("/servicos/:id", get(servicos::obter_servico).put(servicos::atualizar_servico).delete(servicos::excluir_servico))
     .route("/agendamentos", get(agendamentos::listar_agendamentos_api).post(agendamentos::criar_agendamento_api_incoming))
+    .route("/availability", get(agendamentos::availability_api))
+    .route("/work_windows", get(agendamentos::listar_work_windows_api).post(agendamentos::criar_work_window_api))
     .route("/agendamentos/:id", get(agendamentos::obter_agendamento_api).put(agendamentos::atualizar_agendamento_api).delete(agendamentos::excluir_agendamento_api))
         .layer(cors)
         .with_state(db);

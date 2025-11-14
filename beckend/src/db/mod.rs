@@ -89,7 +89,51 @@ pub fn criar_tabelas(conn: &Connection) -> Result<()> {
     )?;
 
     criar_tabela_servicos(conn)?;
+    criar_tabela_work_schedule(conn)?;
     Ok(())
+}
+
+pub fn criar_tabela_work_schedule(conn: &Connection) -> Result<()> {
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS work_windows (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            weekday INTEGER NOT NULL,
+            start_time TEXT NOT NULL,
+            end_time TEXT NOT NULL
+        )",
+        [],
+    )?;
+    Ok(())
+}
+
+/// Retorna as janelas de trabalho (start,end) para a data informada.
+pub fn get_work_windows_for_date(conn: &Connection, date: chrono::NaiveDate) -> Result<Vec<(chrono::NaiveTime, chrono::NaiveTime)>> {
+    let weekday = date.weekday().num_days_from_monday() as i32; // 0 = Monday
+    let mut stmt = conn.prepare("SELECT start_time, end_time FROM work_windows WHERE weekday = ?1")?;
+    let rows = stmt.query_map(params![weekday], |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)))?;
+
+    let mut windows = Vec::new();
+    for r in rows {
+        let (s,e) = r?;
+        if let (Ok(st), Ok(en)) = (chrono::NaiveTime::parse_from_str(&s, "%H:%M"), chrono::NaiveTime::parse_from_str(&e, "%H:%M")) {
+            windows.push((st,en));
+        }
+    }
+    Ok(windows)
+}
+
+/// Lista todas as work_windows (id, weekday, start_time, end_time)
+pub fn listar_work_windows(conn: &Connection) -> Result<Vec<(i32, i32, String, String)>> {
+    let mut stmt = conn.prepare("SELECT id, weekday, start_time, end_time FROM work_windows ORDER BY weekday, start_time")?;
+    let rows = stmt.query_map([], |row| Ok((row.get::<_, i32>(0)?, row.get::<_, i32>(1)?, row.get::<_, String>(2)?, row.get::<_, String>(3)?)))?;
+    let mut out = Vec::new();
+    for r in rows { out.push(r?); }
+    Ok(out)
+}
+
+pub fn salvar_work_window(conn: &Connection, weekday: i32, start_time: &str, end_time: &str) -> Result<i64> {
+    conn.execute("INSERT INTO work_windows (weekday, start_time, end_time) VALUES (?1, ?2, ?3)", params![weekday, start_time, end_time])?;
+    Ok(conn.last_insert_rowid())
 }
 
 pub fn criar_tabela_servicos(conn: &Connection) -> Result<()> {
@@ -160,6 +204,21 @@ pub fn listar_clientes(conn: &Connection) -> Result<Vec<Cliente>> {
         })
     })?.collect();
     clientes
+}
+
+/// Lista clientes filtrando por nome (LIKE) com limite.
+pub fn listar_clientes_search(conn: &Connection, search: &str, limit: i32) -> Result<Vec<Cliente>> {
+    let pattern = format!("%{}%", search.replace('%', "\\%"));
+    let mut stmt = conn.prepare("SELECT id, nome, telefone, email FROM clientes WHERE nome LIKE ?1 ORDER BY nome LIMIT ?2")?;
+    let clientes = stmt.query_map(params![pattern, limit], |row| {
+        Ok(Cliente {
+            id: row.get(0)?,
+            nome: row.get(1)?,
+            telefone: row.get(2)?,
+            email: row.get(3)?,
+        })
+    })?.filter_map(Result::ok).collect();
+    Ok(clientes)
 }
 
 pub fn buscar_cliente_por_id(conn: &Connection, id: i32) -> Result<Option<Cliente>> {
@@ -586,6 +645,21 @@ mod tests {
         assert!(!agendamentos.is_empty(), "Deveria retornar pelo menos um agendamento");
         assert_eq!(agendamentos[0].servicos_ids, vec![servico_id]);
     }
+
+    #[test]
+    fn test_listar_clientes_search() {
+        let conn = conectar_db().unwrap();
+        criar_tabelas(&conn).unwrap();
+
+        // Insert clients
+        let mut c1 = Cliente::new("João Silva".into(), "5511999999999".into(), None);
+        let mut c2 = Cliente::new("Maria Joaquina".into(), "5511888888888".into(), None);
+        let _ = salvar_cliente(&conn, &mut c1).unwrap();
+        let _ = salvar_cliente(&conn, &mut c2).unwrap();
+
+        let results = listar_clientes_search(&conn, "joa", 10).unwrap();
+        assert!(results.len() >= 2, "Esperado encontrar pelo menos 2 clientes com 'joa'");
+    }
 }
 pub fn salvar_servico(conn: &Connection, servico: &Servico) -> Result<i32> {
     match servico.id {
@@ -623,6 +697,21 @@ pub fn listar_servicos(conn: &Connection) -> Result<Vec<Servico>> {
     Ok(servicos)
 }
 
+/// Lista serviços filtrando por nome (LIKE) com limite.
+pub fn listar_servicos_search(conn: &Connection, search: &str, limit: i32) -> Result<Vec<Servico>> {
+    let pattern = format!("%{}%", search.replace('%', "\\%"));
+    let mut stmt = conn.prepare("SELECT id, nome, preco, duracao_min FROM servicos WHERE nome LIKE ?1 ORDER BY nome LIMIT ?2")?;
+    let servicos = stmt.query_map(params![pattern, limit], |row| {
+        Ok(Servico {
+            id: row.get(0)?,
+            nome: row.get(1)?,
+            preco: row.get(2)?,
+            duracao_min: row.get(3)?,
+        })
+    })?.filter_map(Result::ok).collect();
+    Ok(servicos)
+}
+
 pub fn buscar_servico_por_id(conn: &Connection, id: i32) -> Result<Option<Servico>> {
     let mut stmt = conn.prepare("SELECT id, nome, preco, duracao_min FROM servicos WHERE id = ?1")?;
     let mut rows = stmt.query(params![id])?;
@@ -655,4 +744,142 @@ pub fn buscar_nomes_servicos(conn: &Connection, ids: &[i32]) -> Result<Vec<Strin
         nomes.push(nome);
     }
     Ok(nomes)
+}
+
+/// Retorna slots de disponibilidade para uma data específica.
+/// Parâmetros:
+/// - data_str: YYYY-MM-DD
+/// - duracao_min: duração total necessária em minutos
+/// - buffer_min: minutos de buffer antes/depois (padrão 15)
+/// - granularity_min: granularidade dos slots em minutos (padrão 15)
+pub fn calcular_disponibilidade(conn: &Connection, data_str: &str, duracao_min: i64, buffer_min: i64, granularity_min: i64) -> Result<Vec<String>> {
+    use chrono::{NaiveDate, NaiveTime, Duration as ChronoDuration};
+
+    // Parse da data
+    let date = NaiveDate::parse_from_str(data_str, "%Y-%m-%d").map_err(|e| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e)))?;
+
+    // Use work windows configured in DB for this date
+    // Converter durações (precisamos dessas antes de manipular janelas)
+    let dur = ChronoDuration::minutes(duracao_min);
+    let buf = ChronoDuration::minutes(buffer_min);
+    let gran = ChronoDuration::minutes(granularity_min);
+
+    let windows = get_work_windows_for_date(conn, date)?;
+    if windows.is_empty() {
+        // fallback to default window
+        let work_start = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
+        let work_end = NaiveTime::from_hms_opt(18, 0, 0).unwrap();
+        // single window
+        // We'll construct windows vec with this default
+        // but re-use existing logic below that iterates windows
+        // to keep code paths consistent.
+        // windows = vec![(work_start, work_end)]; // can't reassign immutable
+        let mut def = Vec::new();
+        def.push((work_start, work_end));
+    // use default window contained in `def` for local computation (no need to shadow `windows`)
+        // proceed
+        // compute inicio_ts/fim_ts for entire day range using work_start and work_end
+        let start_dt = date.and_time(work_start);
+        let end_dt = date.and_time(work_end);
+        let inicio_ts = start_dt.and_utc().timestamp();
+        let fim_ts = end_dt.and_utc().timestamp();
+        // fetch agendamentos within whole day window
+        let mut stmt = conn.prepare(
+            "SELECT data_hora, id FROM agendamentos WHERE data_hora BETWEEN ?1 AND ?2 AND concluido = 0"
+        )?;
+        let rows = stmt.query_map(params![inicio_ts, fim_ts], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i32>(1)?)))?;
+
+        let mut ocupados: Vec<(i64,i64)> = Vec::new();
+        for r in rows {
+            let (ts, _id) = r?;
+            let mut stmt_s = conn.prepare("SELECT s.duracao_min FROM servicos s JOIN agendamento_servicos a ON s.id = a.servico_id WHERE a.agendamento_id = ?1")?;
+            let dur_iter = stmt_s.query_map(params![_id], |row| row.get::<_, i32>(0))?;
+            let mut total_min = 0i64;
+            for dm in dur_iter { total_min += dm? as i64; }
+            if total_min == 0 { total_min = 30; }
+
+            let ag_start = timestamp_para_naive(ts).and_utc().timestamp();
+            let ag_end = (timestamp_para_naive(ts) + ChronoDuration::minutes(total_min)).and_utc().timestamp();
+            let occ_start = ag_start;
+            let occ_end = ag_end + buf.num_seconds();
+            ocupados.push((occ_start, occ_end));
+        }
+
+    // now iterate the single default window
+    let mut slots: Vec<String> = Vec::new();
+    let mut cursor = start_dt;
+    while cursor + dur <= end_dt {
+            let slot_start_ts = cursor.and_utc().timestamp();
+            let slot_end_ts = (cursor + dur).and_utc().timestamp();
+            let need_start = slot_start_ts;
+            let need_end = slot_end_ts + buf.num_seconds();
+            let mut conflict = false;
+            for (occ_s, occ_e) in &ocupados {
+                if !(need_end <= *occ_s || need_start >= *occ_e) {
+                    conflict = true;
+                    break;
+                }
+            }
+            if !conflict {
+                slots.push(cursor.format("%Y-%m-%dT%H:%M:%S").to_string());
+            }
+        cursor = cursor + gran;
+        }
+        return Ok(slots);
+    }
+    // Converter agendamentos do dia para intervalos ocupados (com buffer após fim)
+    // Converter agendamentos do dia para intervalos ocupados (com buffer após fim)
+    // Buscaremos todos agendamentos do dia inteiro e depois os compararemos com cada window
+    let day_start = date.and_time(chrono::NaiveTime::from_hms_opt(0,0,0).unwrap());
+    let day_end = date.and_time(chrono::NaiveTime::from_hms_opt(23,59,59).unwrap());
+    let inicio_ts = day_start.and_utc().timestamp();
+    let fim_ts = day_end.and_utc().timestamp();
+
+    let mut stmt = conn.prepare(
+        "SELECT data_hora, id FROM agendamentos WHERE data_hora BETWEEN ?1 AND ?2 AND concluido = 0"
+    )?;
+    let rows = stmt.query_map(params![inicio_ts, fim_ts], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i32>(1)?)))?;
+
+    let mut ocupados: Vec<(i64,i64)> = Vec::new();
+    for r in rows {
+        let (ts, _id) = r?;
+        let mut stmt_s = conn.prepare("SELECT s.duracao_min FROM servicos s JOIN agendamento_servicos a ON s.id = a.servico_id WHERE a.agendamento_id = ?1")?;
+        let dur_iter = stmt_s.query_map(params![_id], |row| row.get::<_, i32>(0))?;
+        let mut total_min = 0i64;
+        for dm in dur_iter { total_min += dm? as i64; }
+        if total_min == 0 { total_min = 30; }
+
+        let ag_start = timestamp_para_naive(ts).and_utc().timestamp();
+        let ag_end = (timestamp_para_naive(ts) + ChronoDuration::minutes(total_min)).and_utc().timestamp();
+        let occ_start = ag_start;
+        let occ_end = ag_end + buf.num_seconds();
+        ocupados.push((occ_start, occ_end));
+    }
+
+    // Iterate each configured window and generate slots inside it
+    let mut slots: Vec<String> = Vec::new();
+    for (wstart, wend) in windows {
+        let start_dt = date.and_time(wstart);
+        let end_dt = date.and_time(wend);
+        let mut cursor = start_dt;
+        while cursor + dur <= end_dt {
+            let slot_start_ts = cursor.and_utc().timestamp();
+            let slot_end_ts = (cursor + dur).and_utc().timestamp();
+            let need_start = slot_start_ts;
+            let need_end = slot_end_ts + buf.num_seconds();
+            let mut conflict = false;
+            for (occ_s, occ_e) in &ocupados {
+                if !(need_end <= *occ_s || need_start >= *occ_e) {
+                    conflict = true;
+                    break;
+                }
+            }
+            if !conflict {
+                slots.push(cursor.format("%Y-%m-%dT%H:%M:%S").to_string());
+            }
+            cursor = cursor + gran;
+        }
+    }
+
+    Ok(slots)
 }

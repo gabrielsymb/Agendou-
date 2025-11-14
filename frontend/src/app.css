@@ -1,3 +1,26 @@
+/* stylelint-disable at-rule-no-unknown */
 @import 'tailwindcss';
-@plugin '@tailwindcss/forms';
-@plugin '@tailwindcss/typography';
+
+/* Mobile adjustments: slightly larger touch targets and smaller card padding */
+@layer utilities {
+    @media (max-width: 640px) {
+        .card-sm-p {
+            padding: 0.75rem;
+        } /* default cards use p-4, now p-3 */
+        .btn-touch {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            font-size: 0.95rem;
+        }
+        .input-touch {
+            padding-top: 0.6rem;
+            padding-bottom: 0.6rem;
+        }
+        main {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+    }
+}

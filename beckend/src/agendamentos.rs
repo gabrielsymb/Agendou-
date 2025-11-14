@@ -11,6 +11,8 @@ use crate::db;
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
 use chrono::{NaiveDateTime, DateTime, Utc, TimeZone};
+use axum::extract::Query;
+use std::collections::HashMap;
 
 type Db = Arc<Mutex<Connection>>;
 
@@ -180,5 +182,69 @@ pub async fn excluir_agendamento_api(Path(id): Path<i32>, State(conn): State<Db>
             eprintln!("Erro ao excluir agendamento: {}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse { success: false, message: format!("Erro ao excluir agendamento: {}", e), data: None }))
         }
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct AvailabilityQuery {
+    pub date: String, // YYYY-MM-DD
+    pub duracao_min: Option<i64>,
+    pub buffer_min: Option<i64>,
+    pub granularity_min: Option<i64>,
+}
+
+pub async fn availability_api(Query(q): Query<AvailabilityQuery>, State(conn): State<Db>) -> Json<HashMap<String, Vec<String>>> {
+    let conn = conn.lock().unwrap();
+    let dur = q.duracao_min.unwrap_or(30);
+    let buffer = q.buffer_min.unwrap_or(15);
+    let gran = q.granularity_min.unwrap_or(15);
+
+    match db::calcular_disponibilidade(&conn, &q.date, dur, buffer, gran) {
+        Ok(slots) => {
+            let mut map = HashMap::new();
+            map.insert("slots".to_string(), slots);
+            Json(map)
+        }
+        Err(e) => {
+            eprintln!("Erro ao calcular disponibilidade: {}", e);
+            Json(HashMap::new())
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct NewWorkWindow {
+    pub weekday: i32,
+    pub start_time: String,
+    pub end_time: String,
+}
+
+pub async fn listar_work_windows_api(State(conn): State<Db>) -> Json<Vec<HashMap<String, String>>> {
+    let conn = conn.lock().unwrap();
+    match db::listar_work_windows(&conn) {
+        Ok(rows) => {
+            let out: Vec<_> = rows.into_iter().map(|(id, weekday, s, e)| {
+                let mut m = HashMap::new();
+                m.insert("id".to_string(), id.to_string());
+                m.insert("weekday".to_string(), weekday.to_string());
+                m.insert("start_time".to_string(), s);
+                m.insert("end_time".to_string(), e);
+                m
+            }).collect();
+            Json(out)
+        }
+        Err(e) => { eprintln!("Erro listando work_windows: {}", e); Json(vec![]) }
+    }
+}
+
+pub async fn criar_work_window_api(State(conn): State<Db>, Json(payload): Json<NewWorkWindow>) -> (StatusCode, Json<HashMap<String,String>>) {
+    let conn = conn.lock().unwrap();
+    match db::salvar_work_window(&conn, payload.weekday, &payload.start_time, &payload.end_time) {
+        Ok(id) => {
+            let mut m = HashMap::new();
+            m.insert("id".to_string(), id.to_string());
+            (StatusCode::CREATED, Json(m))
+        }
+        Err(e) => { eprintln!("Erro salvando work_window: {}", e); (StatusCode::INTERNAL_SERVER_ERROR, Json(HashMap::new())) }
     }
 }

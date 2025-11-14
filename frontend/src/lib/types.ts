@@ -9,4 +9,4 @@ export type NovoAgendamento = {
 export type Agendamento = NovoAgendamento & { id: number };
 
 export type Cliente = { id: number; nome: string };
-export type Servico = { id: number; nome: string; preco: number };
+export type Servico = { id: number; nome: string; preco: number; duracao_min?: number };

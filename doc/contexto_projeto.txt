@@ -1,169 +1,36 @@
 Resumo técnico do projeto Agendou!
 
 1. Visão geral
-O projeto "Agendou!" é um sistema de agendamento para barbearias com backend escrito em Rust (Axum) e frontend em Svelte (SvelteKit). O backend oferece uma API REST simples que manipula recursos principais: clientes, serviços e agendamentos, persistidos em SQLite. A aplicação pode rodar em modo CLI (menu interativo) ou como servidor HTTP.
+O projeto "Agendou!" é um sistema de agendamento para barbearias com backend escrito em Rust (Axum) e frontend em SvelteKit. O backend expõe uma API REST e utiliza SQLite para persistência. O frontend é um SPA em SvelteKit que consome o backend via proxies server-side para evitar expor o endereço real do backend no bundle.
 
-2. Estrutura de pastas e arquivos (atualizada)
-- beckend/
-  - Cargo.toml, Cargo.lock
-  - src/
-  - main.rs                # Ponto de entrada; define rotas (clientes, servicos, agendamentos), CORS, inicia servidor ou CLI
-    - calc_preco.rs          # Cálculos e relatórios de lucro
-    - licenca.rs             # Lógica de licença (atualmente mantendo campo de validade)
-    - menu.rs                # Implementa menu CLI
-    - servicos.rs            # Handlers e funções de serviço (lista, cria, atualiza, exclui)
-    - db/
-      - mod.rs               # Funções de acesso ao SQLite (conexão, criar tabelas, CRUD, migrações leves). Usa `src/bd/Banco.db` por padrão; path pode ser sobrescrito pela variável de ambiente `APP_DB_PATH`.
-      - Banco.db             # Arquivo de banco (em src/bd/Banco.db em runtime por padrão)
-    - models/
-      - mod.rs               # Definição de structs: Cliente, Agendamento, Servico, UsuarioSistema
-- frontend/
-  - package.json
-  - svelte.config.js, tsconfig.json, vite.config.ts
-  - src/
-    - app.css, app.html
-    - lib/
-      - components/          # Componentes Svelte reutilizáveis (cards, modais, toasts, etc.)
-      - toast.ts
-      - assets/
-    - routes/
-      - +layout.svelte       # Layout principal com navegação
-      - +page.svelte         # Dashboard
-      - clientes/
-        - +page.svelte       # SPA de clientes (list, criar, editar, excluir)
-        - +page.server.ts    # Carrega clientes a partir do backend
-      - servicos/
-        - +page.svelte       # SPA de serviços (list, criar, editar, excluir)
-        - +page.ts           # Carrega serviços via /api/servicos (proxy frontend)
-- doc/
-  - PROJECT_STRUCTURE.MD    # Documento de estrutura do projeto (atualizar)
-  - contexto_projeto.txt    # Este resumo (gerado)
+2. Estrutura e mudanças recentes
+- Backend (beckend/): Rust + Axum. Arquivos principais em `beckend/src`.
+  - `db/mod.rs`: gerencia conexão SQLite, criação de tabelas (incluindo `work_windows`) e contém a função `calcular_disponibilidade` que gera `slots` discretos para uma data dada.
+  - `agendamentos.rs`: handlers HTTP para agendamentos, endpoint `availability` (GET /availability) e handlers para `work_windows` (GET/POST).
 
-3. Frameworks e bibliotecas utilizadas
-- Backend (Rust):
-  - axum = servidor HTTP e roteamento
-  - tokio = runtime assíncrono
-  - rusqlite = driver SQLite (com feature bundled)
-  - chrono = manipulação de datas/horários
-  - serde = serialização/deserialize JSON
-  - tower-http (CORS)
-  - sha2 (possivelmente para licenças/assinaturas)
-- Frontend:
-  - svelte (SvelteKit) + @sveltejs/kit
-  - vite (bundler/dev server)
-  - tailwindcss (estilização)
-  - TypeScript
+- Frontend (frontend/): SvelteKit + TypeScript.
+  - `src/lib/components/`: contém `AvailabilityPicker.svelte`, `WheelPicker.svelte`, `Autocomplete.svelte`, `SideSheet.svelte`, entre outros.
+  - `src/routes/api/*/+server.ts`: proxies server-side que encaminham chamadas para o backend usando `PRIVATE_API_BASE`.
+  - `src/routes/+layout.svelte`: app shell com sidebar, SideSheet para mobile, e um controlador de navegação por swipe.
 
-4. Principais arquivos e responsabilidades
-- `main.rs`
-  - Inicializa o modo CLI ou servidor, conecta ao banco, cria tabelas e configura rotas Axum.
-  - Define handlers expostos: listar/criar/obter/atualizar/deletar clientes; rotas para serviços delegadas a `servicos.rs`.
-  - Configura CORS (permite Any origin, GET/POST/PUT/DELETE/OPTIONS) via `tower_http::cors::CorsLayer`.
-- `db/mod.rs`
-  - Gerencia conexão SQLite, criação de tabelas (clientes, servicos, agendamentos, agendamento_servicos, sistema).
-  - Implementa CRUD de clientes, serviços e agendamentos, helpers para relatórios e verificação de conflitos.
-  - Implementa migração leve (adiciona coluna `duracao_min` em `servicos` se ausente).
-- `models/mod.rs` (equivalente a `model.rs` no pedido)
-  - Define structs: `Cliente`, `Agendamento`, `Servico`, `UsuarioSistema` com derives para (De)Serialize.
-- `servicos.rs`
-  - Implementa handlers para serviços usados pelo `main.rs` (listar_servicos, criar_servico, obter_servico, atualizar_servico, excluir_servico).
-  - Usa as funções do `db` para persistência.
-- `menu.rs`
-  - Implementa interface CLI (modo `cli`) com operações para gerenciar clientes, serviços e agendamentos localmente.
-- `calc_preco.rs`
-  - Funções para geração de relatórios e cálculo de lucros agrupados por dia/semana/mês.
-- `licenca.rs`
-  - Gerencia/valida dados de licença e/ou variáveis relacionadas à validade (nota: monetização alterada para doações conforme docs).
+3. Endpoints importantes
+- Clientes: GET /clientes, POST /clientes, GET/PUT/DELETE /clientes/:id
+- Serviços: GET /servicos, POST /servicos, GET/PUT/DELETE /servicos/:id
+- Agendamentos: GET /agendamentos, POST /agendamentos (aceita payloads flexíveis), PUT /agendamentos/:id, DELETE /agendamentos/:id
+- Availability: GET /availability?date=YYYY-MM-DD&duracao_min=&buffer_min=&granularity_min= -> retorna { slots: string[] }
+- Work windows: GET /work_windows, POST /work_windows
 
-5. Estrutura das tabelas SQLite (resumo)
-Os nomes e colunas observadas em `db/mod.rs`:
-- clientes
-  - id INTEGER PRIMARY KEY
-  - nome TEXT NOT NULL
-  - telefone TEXT NOT NULL
-  - email TEXT
-  - validade_licenca INTEGER
-- servicos
-  - id INTEGER PRIMARY KEY AUTOINCREMENT
-  - nome TEXT NOT NULL
-  - preco REAL NOT NULL
-  - duracao_min INTEGER NOT NULL DEFAULT 30
-- agendamentos
-  - id INTEGER PRIMARY KEY
-  - cliente_id INTEGER NOT NULL (FK -> clientes.id)
-  - data_hora INTEGER NOT NULL (timestamp)
-  - preco REAL NOT NULL
-  - concluido BOOLEAN NOT NULL CHECK (concluido IN (0, 1))
-- agendamento_servicos (tabela de associação N:N)
-  - agendamento_id INTEGER NOT NULL (FK -> agendamentos.id)
-  - servico_id INTEGER NOT NULL (FK -> servicos.id)
-  - PRIMARY KEY (agendamento_id, servico_id)
-- sistema
-  - id INTEGER PRIMARY KEY CHECK (id = 1)
-  - validade_licenca INTEGER
+4. Observações técnicas
+- O backend aceita `data_hora` tanto como número (timestamp) quanto como string RFC3339 no endpoint de criação de agendamentos (`criar_agendamento_api_incoming`).
+- `calcular_disponibilidade` usa as `work_windows` configuradas no banco; se nenhuma `work_window` existir para o dia, usa um intervalo padrão (08:00–18:00) como fallback.
+- As proxies server-side do frontend usam a variável de ambiente `PRIVATE_API_BASE` (não exposta ao cliente) para encaminhar as requisições ao backend.
 
-6. Endpoints implementados no backend (método + rota + handler)
-Observados em `main.rs` e `servicos.rs`:
-- Clientes
-  - GET  /clientes            -> listar_clientes_api
-  - POST /clientes            -> criar_cliente
-  - GET  /clientes/:id        -> obter_cliente
-  - PUT  /clientes/:id        -> atualizar_cliente_api
-  - DELETE /clientes/:id      -> deletar_cliente_api
-- Serviços
-  - GET  /servicos            -> servicos::listar_servicos
-  - POST /servicos            -> servicos::criar_servico
-  - GET  /servicos/:id        -> servicos::obter_servico
-  - PUT  /servicos/:id        -> servicos::atualizar_servico
-  - DELETE /servicos/:id      -> servicos::excluir_servico
- - Observação: Handlers de agendamentos foram implementados em `beckend/src/agendamentos.rs` e estão registrados em `main.rs`. O módulo inclui um handler que aceita formatos flexíveis para `data_hora` (número ou string RFC3339) para facilitar integração com o frontend.
+5. Como rodar localmente
+- Backend: `cd beckend && cargo run`
+- Frontend: `cd frontend && npm install && npm run dev -- --host`
 
-7. SPAs implementadas no frontend (páginas e localização)
-- Dashboard: `frontend/src/routes/+page.svelte` (tela inicial)
-- Clientes: `frontend/src/routes/clientes/+page.svelte` (listagem, criar, editar, excluir) com `+page.server.ts` carregando dados via fetch para `http://localhost:3000/clientes`.
-- Serviços: `frontend/src/routes/servicos/+page.svelte` e `+page.ts` — consumindo `/api/servicos` (rotas do frontend encaminham para o backend ou usam proxy). Componentes usados: `ClienteCard`, `ServicoCard`, `Modal`, `ModalServico`, `ConfirmarExclusao`, `Toasts`, etc.
-
-8. Comunicação frontend-backend
-- O frontend usa fetch padrão do browser/SvelteKit para fazer requisições HTTP ao backend.
-- Exemplos:
-  - `fetch('http://localhost:3000/clientes')` em `+page.server.ts` para carregar clientes.
-  - `fetch('http://localhost:3000/clientes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(cliente) })` para criar.
-  - No SPA de serviços, há chamadas para `/api/servicos` ou `/api/servicos/:id` — dependendo da configuração do adaptador/proxy do SvelteKit, estas podem ser rotas relativas que o dev server encaminha para o backend.
-- Headers: Content-Type: application/json é usado nas requisições POST/PUT; não há evidência de autenticação via headers/tokens nas chamadas observadas.
- - Headers: Content-Type: application/json é usado nas requisições POST/PUT; não há evidência de autenticação via headers/tokens nas chamadas observadas.
- - Proxy server-side: o frontend implementa rotas server-side em `frontend/src/routes/api/*/+server.ts` que encaminham chamadas para o backend. Essas proxies usam a variável de ambiente `PRIVATE_API_BASE` (ex.: `http://localhost:3000`) definida no ambiente do servidor/desenvolvimento e são usadas apenas no lado servidor. Isso evita expor o endereço do backend no bundle cliente.
-
-9. Configurações especiais
- - DB path: padrão `src/bd/Banco.db`; pode ser sobrescrito via `APP_DB_PATH` (variável de ambiente) para cenários de deploy/CI.
- - CORS: `CorsLayer` em `main.rs` com `allow_origin(Any)` e `allow_methods` incluindo GET/POST/PUT/DELETE/OPTIONS; `allow_headers(Any)` — backend permite acesso de qualquer origem.
- - Estado compartilhado: a conexão SQLite é colocada em `Arc<Mutex<Connection>>` e passada ao router via `with_state(db)` para handlers extraírem com `State(conn): State<Db>`.
- - Migração simples: `criar_tabela_servicos` verifica e adiciona coluna `duracao_min` se necessário. Observação: outras migrações (ex.: adicionar coluna de `buffer_minutos`) não foram encontradas no código e devem ser adicionadas por migração planejada quando necessário.
-
-10. Autenticação, regras de negócio e comportamentos importantes
-- Autenticação: não há evidências de autenticação por token/sessão. `UsuarioSistema` existe em `models/mod.rs`, e `licenca.rs` trata validade/licença, mas o backend não está protegendo rotas via autenticação.
-- Regras de negócio:
-  - Não é possível excluir um cliente que possua agendamentos — `excluir_cliente` verifica e retorna erro (tratado no handler para retornar CONFLICT quando FK constraint é encontrada).
-  - Agendamentos armazenam `data_hora` como timestamp inteiro; funções auxiliam conversão para `NaiveDateTime`.
-  - Ao salvar agendamentos, relacionamentos entre agendamento e serviços são persistidos em `agendamento_servicos`.
-  - Conflitos de horários podem ser verificados com `verificar_conflito` no `db/mod.rs`.
-- Licenciamento/monetização: arquivo `PROJECT_STRUCTURE.MD` indica que o sistema de licença foi abandonado em favor de doações; mas o código ainda guarda campos de validade de licença em `clientes` e tabela `sistema`.
-
-11. Sugestões e observações (pequenas melhorias)
-- Registrar/implementar handlers HTTP para agendamentos se necessário (listar, criar, atualizar, deletar e listagens por data/cliente).
-- Padronizar rotas do frontend para usar base URL configurável (p.ex., variável ambiente) em vez de strings "http://localhost:3000" espalhadas.
-- Considerar proteção das rotas administrativas com autenticação mínima ou proteção em produção.
-- Adicionar testes unitários/integrados para os handlers HTTP e rotas do frontend (end-to-end).
-
-12. Cobertura dos requisitos
-- Todos os itens pedidos pelo usuário foram incluídos: estrutura, libs, responsabilidades dos arquivos, esquema das tabelas, endpoints implementados, SPAs implementadas, comunicação frontend-backend, configurações especiais, e detalhes de autenticação/negócio.
+6. Observações práticas
+- A documentação de UX e de lógica (em `doc/AGENDAMENTO_UX_GUIDELINES.md` e `doc/logic_agendamento.md`) descreve as decisões de interface e o fluxo de agendamento adotado.
+- Remover qualquer fallback de persistência local (localStorage) em `AvailabilityPicker` é recomendado quando a API de `work_windows` estiver plenamente usada e testada.
 
 Fim do resumo.
-
-13. Mudanças recentes implementadas (resumo técnico)
-- Frontend: introduzido proxy server-side em SvelteKit para endpoints principais (`/api/clientes`, `/api/clientes/:id`) que encaminham requisições ao backend usando uma variável de ambiente server-only (`PRIVATE_API_BASE`). Isso evita expor o URL do backend no bundle cliente.
-- Arquivo `frontend/.env.example` criado para documentar as variáveis de ambiente esperadas: `PUBLIC_API_BASE` (se necessário no cliente) e `PRIVATE_API_BASE` (usada apenas no lado servidor do SvelteKit).
-- Alterações na UI: chamadas que continham `http://localhost:3000` foram substituídas por rotas relativas `/api/...` que apontam ao proxy interno do frontend.
-- Controle de versão: `.gitignore` foi atualizado para ignorar `frontend/.env` e `beckend/.env`, garantindo que arquivos de configuração locais não sejam versionados.
- - Nota sobre backend: as funções de persistência e validação para agendamentos existem em `beckend/src/db/mod.rs` e os handlers HTTP foram implementados em `beckend/src/agendamentos.rs` e registrados em `main.rs`. O handler de criação `criar_agendamento_api_incoming` aceita `data_hora` como timestamp numérico ou string (RFC3339) para maior compatibilidade com clientes.
-
-Como consequência prática: após essas mudanças, ao implantar em produção deve-se setar `PRIVATE_API_BASE` no ambiente do servidor SvelteKit (ou na plataforma de hospedagem) apontando para o backend (por exemplo, `https://api.seudominio.com`). O cliente não verá esse endereço no bundle.

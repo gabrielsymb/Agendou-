@@ -6,59 +6,45 @@ Este documento descreve a nova arquitetura e o roteiro de desenvolvimento do sis
 
 Substituir a agenda de papel por um **aplicativo web funcional que roda em qualquer dispositivo, incluindo iPhones, sem depender de lojas de aplicativos**. O sistema oferece persistência de dados real no navegador, garantindo que o barbeiro possa trabalhar mesmo sem conexão com a internet.
 
-## 🚀 Arquitetura Central
+## 🚀 Arquitetura Central (atual)
 
-A nova abordagem combina o poder do Flutter para a interface com a robustez do SQLite para o banco de dados, tudo executado no lado do cliente.
+O projeto atual usa um frontend moderno em SvelteKit e um backend em Rust (Axum) com banco SQLite.
 
-- **Frontend:** **Flutter Web**, escolhido por sua capacidade de criar interfaces ricas, compiladas para um padrão web de alta performance (HTML, CSS, CanvasKit).
-- **Banco de Dados:** **`sql.js`** (SQLite compilado para WebAssembly), que permite executar o banco de dados SQLite diretamente no navegador. Isso garante a reutilização da lógica de banco de dados já validada e a consistência dos dados.
-- **Camada de Persistência:**
-  - **Primária:** **Origin Private File System (OPFS)**, uma API moderna que oferece acesso a um sistema de arquivos privado e de alta performance. O banco de dados é salvo como um arquivo, eliminando os gargalos do `IndexedDB`.
-  - **Fallback:** **`IndexedDB`**, utilizada como uma alternativa robusta para navegadores que ainda não suportam OPFS, garantindo ampla compatibilidade.
-- **Sincronização:** O sistema foi projetado para ser resiliente. O banco de dados é **restaurado automaticamente** da camada de persistência ao iniciar o app e **salvo após cada operação**, prevenindo a perda de dados.
+- Frontend: SvelteKit + TypeScript + Vite. Componentes reutilizáveis estão em `frontend/src/lib/components`.
+- Backend: Rust + Axum; persistência em SQLite localizada no diretório `beckend/`.
+- Comunicação: o frontend expõe proxies server-side em `frontend/src/routes/api/*/+server.ts` que encaminham chamadas para o backend usando a variável `PRIVATE_API_BASE`.
 
----
+### Como rodar (dev)
 
-##  Kanban de Desenvolvimento (Nova Fase)
+- Backend:
 
-O backlog abaixo reflete as etapas para a construção do aplicativo web.
+```powershell
+cd C:\rust\Agendou!\beckend
+cargo run
+```
 
-### 🔹 FASE 1: Persistência Web & Fundação
+- Frontend:
 
-- `[WEB-1]` Configurar um projeto base **Flutter Web**.
-- `[WEB-2]` Integrar **`sql.js`** e testar a execução de comandos SQLite básicos no navegador.
-- `[WEB-3]` Implementar a camada de persistência com detecção de **OPFS** e fallback para **`IndexedDB`**.
-- `[WEB-4]` Criar a lógica para carregar o banco de dados na inicialização e salvá-lo após cada transação (escrita, atualização, exclusão).
-- `[WEB-5]` Portar o esquema do banco de dados (`CREATE TABLE`s) do `db/mod.rs` para o ambiente web.
+```powershell
+cd C:\rust\Agendou!\frontend
+npm install
+npm run dev -- --host
+```
 
-### 🔹 FASE 2: Lógica de Negócios & Interface (UI)
+### Comportamento relevante documentado
 
-- `[UI-1]` Desenvolver as telas principais com Flutter: Dashboard, Agendamentos, Clientes, Serviços e Relatórios.
-- `[LOGIC-1]` Portar as operações de **CRUD de Clientes e Serviços** da lógica Rust para Dart/Flutter.
-- `[LOGIC-2]` Portar a lógica de **agendamento**, incluindo a verificação de conflitos de horário.
-- `[LOGIC-3]` Portar a geração de **relatórios de produtividade** (lucro diário, mensal, total).
-- `[UI-2]` Criar formulários para cadastrar e editar clientes, serviços e agendamentos.
+- O frontend faz `load` em `/agendamentos` buscando `/api/agendamentos`, `/api/clientes` e `/api/servicos` e faz lookup local para exibir nomes legíveis na UI.
+- Na lista e no cartão de confirmação o cliente é exibido pelo primeiro nome completo e as demais palavras são abreviadas como iniciais (ex.: "João Pedro Silva" → "João P. S.").
 
-### 🔹 FASE 3: Progressive Web App (PWA) & Funcionalidades Avançadas
+### Endpoints úteis (proxies)
 
-- `[PWA-1]` Configurar o app Flutter para ser um **Progressive Web App (PWA)**, permitindo que seja "instalado" na tela inicial dos dispositivos.
-- `[PWA-2]` Implementar um **Service Worker** para cache de recursos e melhor performance offline.
-- `[FEATURE-1]` (Opcional) Reavaliar e, se necessário, reimplementar a lógica de licenciamento no contexto web.
-- `[FEATURE-2]` (Opcional) Adicionar notificações push para lembretes de agendamento.
+- GET /api/availability (proxy) → backend /availability
+- GET /api/work_windows, POST /api/work_windows (proxy)
+- Clientes/Serviços/Agendamentos têm proxies em `frontend/src/routes/api/`.
 
----
+### Notas
 
-### ✅ Legado (Backend Rust - Concluído)
+- Alguns componentes importantes: `AvailabilityPicker.svelte`, `WheelPicker.svelte`, `Autocomplete.svelte`, `SideSheet.svelte`.
+- Remova referências antigas a Flutter/OPFS; o estado atual do repositório é SvelteKit (frontend) + Rust (backend).
 
-A implementação original em Rust serviu como uma excelente prova de conceito e continua sendo uma referência valiosa para a lógica de negócios.
-
-- **Structs com `serde`**
-- **Conexão com SQLite (`rusqlite`)**
-- **Tabelas de Clientes, Serviços e Agendamentos**
-- **CRUD para Clientes e Serviços**
-- **Criação de agendamentos com `chrono`**
-- **Verificação de conflito de horário**
-- **Cálculo de preço e lucro**
-- **Relatórios de produtividade (dia, mês, total)**
-- **Marcar agendamento como concluído**
-- **Remarcar/realocar agendamentos**
+Fim.
