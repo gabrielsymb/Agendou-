@@ -293,9 +293,11 @@ pub fn gerar_relatorio_terminal(conn: &Connection) -> rusqlite::Result<()> {
 pub fn cadastrar_servico(conn: &rusqlite::Connection) -> rusqlite::Result<()> {
     let mut nome = String::new();
     let mut preco_str = String::new();
+    let mut duracao_str = String::new();
 
     print!("Nome do serviço: "); io::stdout().flush().unwrap(); io::stdin().read_line(&mut nome).unwrap();
     print!("Preço do serviço: "); io::stdout().flush().unwrap(); io::stdin().read_line(&mut preco_str).unwrap();
+    print!("Duração (minutos): "); io::stdout().flush().unwrap(); io::stdin().read_line(&mut duracao_str).unwrap();
 
     let preco: f64 = match preco_str.trim().parse() {
         Ok(p) if p >= 0.0 => p,
@@ -310,7 +312,15 @@ pub fn cadastrar_servico(conn: &rusqlite::Connection) -> rusqlite::Result<()> {
         return Ok(());
     }
 
-    let servico = Servico { id: None, nome: nome.trim().into(), preco };
+    let duracao_min: i32 = match duracao_str.trim().parse() {
+        Ok(d) if d > 0 => d,
+        _ => {
+            println!("❌ Duração inválida.");
+            return Ok(());
+        }
+    };
+
+    let servico = Servico { id: None, nome: nome.trim().into(), preco, duracao_min };
     let id = salvar_servico(conn, &servico)?;
     println!("✅ Serviço cadastrado com ID: {}", id);
     Ok(())

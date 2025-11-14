@@ -37,8 +37,8 @@
 		class="md:hidden fixed top-0 left-0 right-0 bg-white shadow z-50 flex items-center justify-between px-4 py-3"
 	>
 		<h2 class="text-lg font-bold">Agendou!</h2>
-		<button on:click={() => (menuAberto = !menuAberto)}>
-			<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<button aria-label="Abrir menu" aria-expanded={menuAberto} aria-controls="mobile-menu" on:click={() => (menuAberto = !menuAberto)}>
+			<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" role="img" aria-hidden="true">
 				<path
 					stroke-linecap="round"
 					stroke-linejoin="round"
@@ -50,7 +50,7 @@
 	</div>
 
 	{#if menuAberto}
-		<div class="fixed top-16 left-0 w-full bg-white shadow z-40 p-4">
+	<div id="mobile-menu" class="fixed top-16 left-0 w-full bg-white shadow z-40 p-4">
 			<nav class="space-y-2">
 				{#each navLinks as link}
 					{#if link.href !== $page.url.pathname}

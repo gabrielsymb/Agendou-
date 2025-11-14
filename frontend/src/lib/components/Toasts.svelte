@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { toasts } from '$lib/toast';
 	import { fly } from 'svelte/transition';
+	import type { Toast } from '$lib/toast';
 
 	function getBackgroundColor(type: 'success' | 'error') {
 		return type === 'success' ? 'bg-green-500' : 'bg-red-500';
@@ -13,9 +14,7 @@
 			<div
 				in:fly={{ y: 100, duration: 300 }}
 				out:fly={{ y: 100, duration: 300 }}
-				class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg {getBackgroundColor(
-					toast.type
-				)} shadow-lg ring-1 ring-black ring-opacity-5"
+				class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg {getBackgroundColor(toast.type)} shadow-lg ring-1 ring-black ring-opacity-5"
 			>
 				<div class="p-4">
 					<div class="flex items-center">

@@ -6,15 +6,25 @@ use crate::models::{Cliente, Agendamento, Servico};
 use rusqlite::ToSql;
 
 
-// Caminho do banco de dados
-const DB_PATH: &str = "barbearia.db";
+// Caminho do banco de dados (padrão) — pode ser sobrescrito pela variável de ambiente APP_DB_PATH
+// Agora apontamos por padrão para a pasta `src/bd` conforme solicitado.
+const DB_PATH: &str = "src/bd/Banco.db";
 
 // =================================================================================
 // 1. INFRAESTRUTURA
 // =================================================================================
 
 pub fn conectar_db() -> Result<Connection> {
-    Connection::open(DB_PATH)
+    // Allow overriding DB path via env var for flexibility in dev/production
+    let db_path = std::env::var("APP_DB_PATH").unwrap_or_else(|_| DB_PATH.to_string());
+    // Resolve absolute path for logging/debugging
+    // canonicalize pode falhar se o arquivo ainda não existir; use PathBuf direto como fallback
+    let abs_path = match std::fs::canonicalize(&db_path) {
+        Ok(p) => p,
+        Err(_) => std::path::PathBuf::from(&db_path),
+    };
+    println!("[DB] Abrindo arquivo de banco de dados em: {}", abs_path.display());
+    Connection::open(db_path)
 }
 
 pub fn criar_tabelas(conn: &Connection) -> Result<()> {
@@ -67,14 +77,31 @@ pub fn criar_tabelas(conn: &Connection) -> Result<()> {
 }
 
 pub fn criar_tabela_servicos(conn: &Connection) -> Result<()> {
+    // Create the table ensuring the `duracao_min` column exists with a default value.
     conn.execute(
         "CREATE TABLE IF NOT EXISTS servicos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
-            preco REAL NOT NULL
+            preco REAL NOT NULL,
+            duracao_min INTEGER NOT NULL DEFAULT 30
         )",
         [],
     )?;
+
+    // If the table existed previously without `duracao_min`, add the column.
+    let mut has_duracao = false;
+    let mut stmt = conn.prepare("PRAGMA table_info(servicos)")?;
+    let cols = stmt.query_map([], |row| Ok(row.get::<_, String>(1)?))?;
+    for col in cols {
+        if col? == "duracao_min" {
+            has_duracao = true;
+            break;
+        }
+    }
+    if !has_duracao {
+        // Add column with a sensible default to avoid NOT NULL violations.
+        conn.execute("ALTER TABLE servicos ADD COLUMN duracao_min INTEGER NOT NULL DEFAULT 30", [])?;
+    }
 
     Ok(())
 }
@@ -486,9 +513,9 @@ mod tests {
         let conn = conectar_db().unwrap();
         criar_tabelas(&conn).unwrap();
 
-        // Insert a dummy service for the test
-        let servico_teste = Servico { id: None, nome: "Corte Diário".into(), preco: 40.0 };
-        let servico_id = salvar_servico(&conn, &servico_teste).unwrap();
+    // Insert a dummy service for the test
+    let servico_teste = Servico { id: None, nome: "Corte Diário".into(), preco: 40.0, duracao_min: 30 };
+    let servico_id = salvar_servico(&conn, &servico_teste).unwrap();
 
         // Insert a dummy client for the test
         let mut cliente = Cliente::new("Cliente Diário".into(), "5511987654321".into(), None);
@@ -518,9 +545,9 @@ mod tests {
         let conn = conectar_db().unwrap();
         criar_tabelas(&conn).unwrap();
 
-        // Insert a dummy service for the test
-        let servico_teste = Servico { id: None, nome: "Corte Teste".into(), preco: 50.0 };
-        let servico_id = salvar_servico(&conn, &servico_teste).unwrap();
+    // Insert a dummy service for the test
+    let servico_teste = Servico { id: None, nome: "Corte Teste".into(), preco: 50.0, duracao_min: 30 };
+    let servico_id = salvar_servico(&conn, &servico_teste).unwrap();
 
         let mut cliente = Cliente::new("Teste Listagem Cliente".into(), "5577777777777".into(), None);
         let cliente_id = salvar_cliente(&conn, &mut cliente).unwrap();
@@ -542,25 +569,55 @@ mod tests {
     }
 }
 pub fn salvar_servico(conn: &Connection, servico: &Servico) -> Result<i32> {
-    conn.execute(
-        "INSERT INTO servicos (nome, preco) VALUES (?1, ?2)",
-        params![servico.nome, servico.preco],
-    )?;
-    Ok(conn.last_insert_rowid() as i32)
+    match servico.id {
+        Some(id) => {
+            // Update existing service
+            conn.execute(
+                "UPDATE servicos SET nome = ?1, preco = ?2, duracao_min = ?3 WHERE id = ?4",
+                params![servico.nome, servico.preco, servico.duracao_min, id],
+            )?;
+            Ok(id)
+        }
+        None => {
+            // Insert new service
+            conn.execute(
+                "INSERT INTO servicos (nome, preco, duracao_min) VALUES (?1, ?2, ?3)",
+                params![servico.nome, servico.preco, servico.duracao_min],
+            )?;
+            Ok(conn.last_insert_rowid() as i32)
+        }
+    }
 }
 
 pub fn listar_servicos(conn: &Connection) -> Result<Vec<Servico>> {
-    let mut stmt = conn.prepare("SELECT id, nome, preco FROM servicos")?;
+    let mut stmt = conn.prepare("SELECT id, nome, preco, duracao_min FROM servicos")?;
     let servicos = stmt.query_map([], |row| {
         Ok(Servico {
             id: row.get(0)?,
             nome: row.get(1)?,
             preco: row.get(2)?,
+            duracao_min: row.get(3)?,
         })
     })?
     .filter_map(Result::ok)
     .collect();
     Ok(servicos)
+}
+
+pub fn buscar_servico_por_id(conn: &Connection, id: i32) -> Result<Option<Servico>> {
+    let mut stmt = conn.prepare("SELECT id, nome, preco, duracao_min FROM servicos WHERE id = ?1")?;
+    let mut rows = stmt.query(params![id])?;
+
+    if let Some(row) = rows.next()? {
+        Ok(Some(Servico {
+            id: row.get(0)?,
+            nome: row.get(1)?,
+            preco: row.get(2)?,
+            duracao_min: row.get(3)?,
+        }))
+    } else {
+        Ok(None)
+    }
 }
 
 pub fn excluir_servico(conn: &Connection, id: i32) -> Result<()> {

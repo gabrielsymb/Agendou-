@@ -38,11 +38,15 @@ impl Cliente {
         }
     }
 }
-#[derive(Debug, Clone)]
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Servico {
+    // Agora id é um i32 (sempre presente após persistência). Usamos Option<i32>
+    // durante criação no frontend, mas a struct pública do backend espera id: i32
     pub id: Option<i32>,
     pub nome: String,
     pub preco: f64,
+    pub duracao_min: i32,
 }
 #[derive(Debug)]
 pub struct UsuarioSistema {

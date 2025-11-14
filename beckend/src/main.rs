@@ -15,6 +15,7 @@ mod models;
 mod menu;
 mod licenca;
 mod calc_preco;
+mod servicos;
  
 use db::{buscar_cliente_por_id, excluir_cliente, salvar_cliente};
 use models::Cliente;
@@ -117,7 +118,9 @@ fn main() {
 
     // O primeiro argumento (índice 1) é o que nos interessa.
     // Se nenhum argumento for passado, o padrão será "server".
-    let command = args.get(1).map(|s| s.as_str()).unwrap_or("server");
+    // Aceitamos tanto `cli`/`server` quanto `-cli`/`--cli` etc.
+    let command_raw = args.get(1).map(|s| s.as_str()).unwrap_or("server");
+    let command = command_raw.trim_start_matches('-');
 
     match command {
         "cli" => {
@@ -155,6 +158,8 @@ async fn iniciar_servidor() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/clientes", get(listar_clientes_api).post(criar_cliente))
         .route("/clientes/:id", get(obter_cliente).put(atualizar_cliente_api).delete(deletar_cliente_api))
+    .route("/servicos", get(servicos::listar_servicos).post(servicos::criar_servico))
+    .route("/servicos/:id", get(servicos::obter_servico).put(servicos::atualizar_servico).delete(servicos::excluir_servico))
         .layer(cors)
         .with_state(db);
  
